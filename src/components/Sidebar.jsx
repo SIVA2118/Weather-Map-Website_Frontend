@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Swal from 'sweetalert2';
 import {
+    AlertTriangle,
     Cloud,
     CloudRain,
     CloudSnow,
@@ -11,12 +13,15 @@ import {
     Eye,
     Sunrise,
     Navigation,
-    Search
+    Search,
+    X
 } from 'lucide-react';
 import LocationStatus from './LocationStatus';
+import { getWeatherAlert } from '../utils/weatherAlert';
 
 const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiData, onLocate, onSearch, locationStatus, isSearching }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const lastWeatherChangeKeyRef = useRef('');
 
     const handleSearch = (e) => {
         if (e.key === 'Enter' || e.type === 'click') {
@@ -78,6 +83,110 @@ const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiDa
     };
 
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [timedAlert, setTimedAlert] = useState(null);
+    const alertTimeoutRef = useRef(null);
+
+    const weatherAlert = useMemo(() => getWeatherAlert(weatherData, aqiData), [weatherData, aqiData]);
+    const alertKey = weatherAlert ? `${weatherAlert.level}:${weatherAlert.message}` : '';
+    const weatherStamp = weatherData?.dt ?? '';
+    const aqiStamp = aqiData?.list?.[0]?.dt ?? '';
+    const alertTriggerKey = `${alertKey}|${weatherStamp}|${aqiStamp}`;
+
+    const playVoiceAlert = (message) => {
+        if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') {
+            return;
+        }
+
+        window.speechSynthesis.cancel();
+
+        const utterance = new window.SpeechSynthesisUtterance(message);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        window.speechSynthesis.speak(utterance);
+    };
+
+    useEffect(() => {
+        if (!alertKey) {
+            setTimedAlert(null);
+            if (alertTimeoutRef.current) {
+                clearTimeout(alertTimeoutRef.current);
+                alertTimeoutRef.current = null;
+            }
+            return;
+        }
+
+        setTimedAlert(weatherAlert);
+
+        if (alertTimeoutRef.current) {
+            clearTimeout(alertTimeoutRef.current);
+        }
+
+        alertTimeoutRef.current = setTimeout(() => {
+            setTimedAlert(null);
+            alertTimeoutRef.current = null;
+        }, 30000);
+
+        return () => {
+            if (alertTimeoutRef.current) {
+                clearTimeout(alertTimeoutRef.current);
+                alertTimeoutRef.current = null;
+            }
+        };
+    }, [alertTriggerKey, alertKey, weatherAlert]);
+
+    useEffect(() => {
+        if (!weatherData || weatherData.error) {
+            return;
+        }
+
+        const cityName = weatherData.name || 'Selected location';
+        const condition = weatherData.weather?.[0]?.main || 'Weather update';
+        const description = weatherData.weather?.[0]?.description || '';
+        const temperature = Math.round(weatherData.main?.temp ?? 0);
+        const aqiValue = aqiData?.list?.[0]?.main?.aqi ?? 'na';
+        const changeKey = `${cityName}|${condition}|${temperature}|${aqiValue}|${weatherStamp}|${aqiStamp}`;
+
+        if (lastWeatherChangeKeyRef.current === changeKey) {
+            return;
+        }
+
+        lastWeatherChangeKeyRef.current = changeKey;
+
+        const alertLevel = weatherAlert?.level || 'info';
+        const swalIcon = alertLevel === 'high' ? 'warning' : 'info';
+        const message = weatherAlert?.message || `${condition}: ${description}. Current temperature is ${temperature}°C.`;
+        const details = Array.isArray(weatherAlert?.details) ? weatherAlert.details : [];
+        const combinedVoiceMessage = [message, ...details].join('. ');
+
+        playVoiceAlert(combinedVoiceMessage);
+
+        const detailMarkup = details.length > 0
+            ? `<ul style="margin: 12px 0 0; padding-left: 18px; text-align: left; font-size: 0.9rem; line-height: 1.45;">${details
+                .map((detail) => `<li style=\"margin-bottom: 6px;\">${detail}</li>`)
+                .join('')}</ul>`
+            : '';
+
+        Swal.fire({
+            title: `Weather changed in ${cityName}`,
+            html: `<p style="margin: 0;">${message}</p>${detailMarkup}`,
+            icon: swalIcon,
+            timer: 4800,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            background: '#0d2437',
+            color: '#ecf6ff',
+            didOpen: () => {
+                const popup = Swal.getPopup();
+                if (popup) {
+                    popup.style.border = '1px solid rgba(154, 218, 244, 0.28)';
+                    popup.style.borderRadius = '16px';
+                }
+            }
+        });
+    }, [weatherData, aqiData, weatherAlert, weatherStamp, aqiStamp]);
 
     return (
         <div className={`glass-panel sidebar-container ${isCollapsed ? 'collapsed' : ''}`} style={{
@@ -220,6 +329,70 @@ const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiDa
 
                 {/* Location Status Component */}
                 <LocationStatus status={locationStatus} onRetry={onLocate} />
+
+                {timedAlert && (
+                    <div className="animate-fade-in" style={{
+                        marginTop: '4px',
+                        padding: '14px',
+                        borderRadius: '14px',
+                        boxShadow: timedAlert.level === 'high' ? '0 10px 26px rgba(239, 68, 68, 0.22)' : '0 10px 26px rgba(245, 158, 11, 0.2)',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        background: timedAlert.level === 'high' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                        border: timedAlert.level === 'high' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(245, 158, 11, 0.35)',
+                        color: timedAlert.level === 'high' ? '#fecaca' : '#fde68a',
+                        fontSize: '0.82rem',
+                        lineHeight: 1.45
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '6px'
+                        }}>
+                            <p style={{
+                            margin: 0,
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.4px',
+                            textTransform: 'uppercase',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}>
+                            <AlertTriangle size={14} /> Weather Alert
+                            </p>
+                            <button
+                                onClick={() => setTimedAlert(null)}
+                                aria-label="Dismiss notification"
+                                style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: 'inherit',
+                                    opacity: 0.75,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '2px'
+                                }}
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                        <p style={{ margin: 0, fontWeight: 600 }}>{timedAlert.message}</p>
+                        {Array.isArray(timedAlert.details) && timedAlert.details.length > 0 && (
+                            <ul style={{ margin: '8px 0 0', paddingLeft: '18px', fontSize: '0.76rem', opacity: 0.9 }}>
+                                {timedAlert.details.map((detail, index) => (
+                                    <li key={`${detail}-${index}`} style={{ marginBottom: '4px' }}>
+                                        {detail}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        <p style={{ margin: '6px 0 0', fontSize: '0.72rem', opacity: 0.7 }}>Auto hides in 30s</p>
+                    </div>
+                )}
 
                 {isSearching ? (
                     <div className="animate-fade-in" style={{

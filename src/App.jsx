@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MapView from './components/MapView';
 import Sidebar from './components/Sidebar';
+import TamilNaduTicker from './components/TamilNaduTicker';
 
 import { Navigation } from 'lucide-react';
 
@@ -148,51 +149,21 @@ function App() {
                 onLocate={() => handleLocate(false)}
                 isSearching={isSearching}
             />
-            <MapView
-                activeLayer={activeLayer}
-                center={mapCenter}
-            />
+            <div className="map-shell">
+                <MapView
+                    activeLayer={activeLayer}
+                    center={mapCenter}
+                />
+            </div>
 
-            {/* Floating Location Button */}
+            <TamilNaduTicker apiBaseUrl={API_BASE_URL} />
+
             <button
+                className={`locate-fab ${isSearching ? 'is-busy' : ''}`}
                 onClick={() => handleLocate(false)}
-                title="Detect My Location"
+                title="Detect my location"
+                aria-label="Detect my location"
                 disabled={isSearching}
-                style={{
-                    position: 'absolute',
-                    bottom: '30px',
-                    right: '30px',
-                    zIndex: 1000,
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '15px',
-                    background: isSearching ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)',
-                    backdropFilter: 'blur(12px)',
-                    WebkitBackdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: isSearching ? 'not-allowed' : 'pointer',
-                    color: 'white',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                    animation: isSearching ? 'pulse 1.5s infinite' : 'none'
-                }}
-                onMouseOver={(e) => {
-                    if (!isSearching) {
-                        e.currentTarget.style.background = 'var(--primary)';
-                        e.currentTarget.style.transform = 'scale(1.1)';
-                        e.currentTarget.style.boxShadow = '0 12px 40px rgba(59, 130, 246, 0.4)';
-                    }
-                }}
-                onMouseOut={(e) => {
-                    if (!isSearching) {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.3)';
-                    }
-                }}
             >
                 <Navigation
                     size={22}
