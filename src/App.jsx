@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import MapView from './components/MapView';
 import Sidebar from './components/Sidebar';
 import TamilNaduTicker from './components/TamilNaduTicker';
+import IndiaRainPanel from './components/IndiaRainPanel';
+import RainAlertSystem from './components/RainAlertSystem';
 
 import { Navigation } from 'lucide-react';
 
-const API_BASE_URL = "https://weather-map-website-backend.onrender.com";
+import { saveSearchHistory } from './utils/historyUtils';
+
+const API_BASE_URL = 'http://localhost:5000';
 
 function App() {
     const [activeLayer, setActiveLayer] = useState('standard');
@@ -15,10 +19,11 @@ function App() {
 
     const [mapCenter, setMapCenter] = useState(() => {
         const saved = localStorage.getItem('lastLocation');
-        return saved ? JSON.parse(saved) : [7.991, 80.883];
+        // Defaulting to Chennai if no saved location
+        return saved ? JSON.parse(saved) : [13.0827, 80.2707];
     });
 
-    const [locationStatus, setLocationStatus] = useState('prompt'); // prompt, granted, denied, error
+    const [locationStatus, setLocationStatus] = useState('prompt'); // prompt, granted, denied, approximate, error
     const [isSearching, setIsSearching] = useState(false);
 
     const updateLocation = (lat, lon) => {
@@ -57,10 +62,31 @@ function App() {
         }
     };
 
+    const fetchFallbackLocation = async () => {
+        try {
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+            if (data.latitude && data.longitude) {
+                console.log("Using IP-based location:", data.city);
+                setLocationStatus('approximate');
+                updateLocation(data.latitude, data.longitude);
+                fetchAllData(data.latitude, data.longitude);
+                return true;
+            }
+        } catch (err) {
+            console.error("IP Geolocate failed:", err);
+        }
+        return false;
+    };
+
     const handleLocate = async (isInitial = false) => {
         if (!("geolocation" in navigator)) {
             setLocationStatus('error');
-            if (isInitial) fetchAllData(mapCenter[0], mapCenter[1]);
+            const success = await fetchFallbackLocation();
+            if (!success && isInitial && !localStorage.getItem('lastLocation')) {
+                // only default to a major city if everything fails and no history
+                handleSearch('Chennai');
+            }
             return;
         }
 
@@ -72,7 +98,10 @@ function App() {
                 setLocationStatus(result.state);
 
                 if (result.state === 'denied') {
-                    if (isInitial) fetchAllData(mapCenter[0], mapCenter[1]);
+                    const success = await fetchFallbackLocation();
+                    if (!success && isInitial && !localStorage.getItem('lastLocation')) {
+                        handleSearch('Chennai');
+                    }
                     setIsSearching(false);
                     return;
                 }
@@ -90,24 +119,37 @@ function App() {
                     updateLocation(latitude, longitude);
                     fetchAllData(latitude, longitude);
                 },
-                (error) => {
+                async (error) => {
                     console.error("Geolocation Error:", error.message);
                     if (error.code === error.PERMISSION_DENIED) {
                         setLocationStatus('denied');
                     } else {
                         setLocationStatus('error');
                     }
-                    // On initial load error, use fallback but don't clear persistence
-                    if (isInitial) fetchAllData(mapCenter[0], mapCenter[1]);
+
+                    // Try IP Fallback if browser geolocation fails
+                    const success = await fetchFallbackLocation();
+                    if (!success && isInitial && !localStorage.getItem('lastLocation')) {
+                        handleSearch('Chennai');
+                    }
                     setIsSearching(false);
                 },
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
             );
         } catch (err) {
             console.error("HandleLocate failed:", err);
-            if (isInitial) fetchAllData(mapCenter[0], mapCenter[1]);
+            const success = await fetchFallbackLocation();
+            if (!success && isInitial && !localStorage.getItem('lastLocation')) {
+                handleSearch('Chennai');
+            }
             setIsSearching(false);
         }
+    };
+
+
+    const handleMapClick = (lat, lon) => {
+        updateLocation(lat, lon);
+        fetchAllData(lat, lon);
     };
 
     const handleSearch = async (city) => {
@@ -117,6 +159,8 @@ function App() {
             const data = await response.json();
             if (response.ok) {
                 setWeatherData(data);
+                // Save to history on success
+                saveSearchHistory(data.name || city);
                 if (data.coord) {
                     updateLocation(data.coord.lat, data.coord.lon);
                     fetchAllData(data.coord.lat, data.coord.lon);
@@ -131,6 +175,7 @@ function App() {
             setIsSearching(false);
         }
     };
+
 
     useEffect(() => {
         handleLocate(true);
@@ -153,10 +198,15 @@ function App() {
                 <MapView
                     activeLayer={activeLayer}
                     center={mapCenter}
+                    onMapClick={handleMapClick}
                 />
             </div>
 
-            <TamilNaduTicker apiBaseUrl={API_BASE_URL} />
+            <div className="intel-sidebar">
+                <TamilNaduTicker apiBaseUrl={API_BASE_URL} />
+                <IndiaRainPanel apiBaseUrl={API_BASE_URL} />
+                <RainAlertSystem apiBaseUrl={API_BASE_URL} />
+            </div>
 
             <button
                 className={`locate-fab ${isSearching ? 'is-busy' : ''}`}

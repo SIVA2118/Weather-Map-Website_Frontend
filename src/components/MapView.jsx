@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -29,7 +29,18 @@ const ChangeView = ({ center }) => {
     return null;
 };
 
-const MapView = ({ activeLayer, center }) => {
+const MapEvents = ({ onMapClick }) => {
+    useMapEvents({
+        click(e) {
+            if (onMapClick) {
+                onMapClick(e.latlng.lat, e.latlng.lng);
+            }
+        },
+    });
+    return null;
+};
+
+const MapView = ({ activeLayer, center, onMapClick }) => {
     const getBaseUrl = () => {
         if (activeLayer === 'satellite') {
             return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -53,6 +64,7 @@ const MapView = ({ activeLayer, center }) => {
             zoomControl={false}
         >
             <ChangeView center={center} />
+            <MapEvents onMapClick={onMapClick} />
 
             <TileLayer
                 url={getBaseUrl()}

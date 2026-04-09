@@ -72,24 +72,37 @@ const LocationStatus = ({ status, onRetry }) => {
         );
     }
 
-    if (status === 'prompt') {
+    if (status === 'approximate') {
         return (
-            <div style={{ ...styles.container, ...styles.prompt }}>
+            <div style={{ ...styles.container, ...styles.error, background: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)', color: '#93c5fd' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
-                    <MapPin size={18} /> Location Access
+                    <Info size={18} /> Approximate Location
                 </div>
-                <p>Allow location access to see weather for your current city.</p>
-                <button
-                    style={{ ...styles.button, background: 'rgba(59, 130, 246, 0.3)' }}
-                    onClick={onRetry}
-                >
-                    <Info size={14} /> Share My Location
-                </button>
+                <p>We've detected your location via network. This might be inaccurate (e.g., showing a regional hub like Chennai).</p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                        style={{ ...styles.button, flex: 1, background: 'rgba(59,130,246,0.3)' }}
+                        onClick={() => {}} // Just dismiss or stay
+                    >
+                        It's Correct
+                    </button>
+                    <button
+                        style={{ ...styles.button, flex: 1 }}
+                        onClick={() => {
+                            // Trigger search focus or similar
+                            const input = document.querySelector('input[placeholder="Search city..."]');
+                            if (input) input.focus();
+                        }}
+                    >
+                        Search My City
+                    </button>
+                </div>
             </div>
         );
     }
 
     return null;
 };
+
 
 export default LocationStatus;

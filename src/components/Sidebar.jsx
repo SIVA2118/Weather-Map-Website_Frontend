@@ -14,14 +14,36 @@ import {
     Sunrise,
     Navigation,
     Search,
-    X
+    X,
+    History,
+    Trash2,
+    Clock
 } from 'lucide-react';
 import LocationStatus from './LocationStatus';
 import { getWeatherAlert } from '../utils/weatherAlert';
+import { getSearchHistory, clearSearchHistory } from '../utils/historyUtils';
 
 const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiData, onLocate, onSearch, locationStatus, isSearching }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [showHistory, setShowHistory] = useState(false);
+    const [history, setHistory] = useState([]);
     const lastWeatherChangeKeyRef = useRef('');
+
+    useEffect(() => {
+        if (showHistory) {
+            setHistory(getSearchHistory());
+        }
+    }, [showHistory]);
+
+    const handleHistoryClick = (city) => {
+        onSearch(city);
+        setShowHistory(false);
+    };
+
+    const handleClearHistory = () => {
+        clearSearchHistory();
+        setHistory([]);
+    };
 
     const handleSearch = (e) => {
         if (e.key === 'Enter' || e.type === 'click') {
@@ -280,6 +302,25 @@ const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiDa
                     >
                         <Search size={18} />
                     </button>
+                    <button
+                        onClick={() => setShowHistory(!showHistory)}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: showHistory ? 'var(--primary)' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s',
+                            borderLeft: '1px solid rgba(255,255,255,0.1)',
+                            marginLeft: '4px'
+                        }}
+                        title="Search History"
+                    >
+                        <History size={18} />
+                    </button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -308,6 +349,22 @@ const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiDa
                         ))}
                     </div>
                 </div>
+
+                <div style={{
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginTop: '2px'
+                }}>
+                    <Navigation size={14} color="var(--primary)" />
+                    <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', margin: 0, lineHeight: 1.4 }}>
+                        Location wrong? <strong>Click/tap on the map</strong> to set it manually.
+                    </p>
+                </div>
             </div>
 
             {/* Scrollable Content Section */}
@@ -327,8 +384,118 @@ const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiDa
                     }
                 `}</style>
 
+                {/* Search History View */}
+                {showHistory && (
+                    <div className="animate-fade-in" style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        padding: '16px',
+                        marginBottom: '4px'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+                                <Clock size={16} />
+                                <span style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Recent Searches</span>
+                            </div>
+                            {history.length > 0 && (
+                                <button
+                                    onClick={handleClearHistory}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: '#ef4444',
+                                        cursor: 'pointer',
+                                        padding: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        opacity: 0.8,
+                                        transition: 'opacity 0.2s'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                                    onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}
+                                    title="Clear All"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
+
+                        {history.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {history.map((city, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => handleHistoryClick(city)}
+                                        style={{
+                                            padding: '10px 14px',
+                                            borderRadius: '10px',
+                                            border: 'none',
+                                            background: 'rgba(255, 255, 255, 0.05)',
+                                            color: 'white',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            fontSize: '0.85rem',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}
+                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                                    >
+                                        <span>{city}</span>
+                                        <Search size={14} style={{ opacity: 0.5 }} />
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)' }}>
+                                <p style={{ fontSize: '0.8rem' }}>No recent searches found</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Location Status Component */}
                 <LocationStatus status={locationStatus} onRetry={onLocate} />
+
+                {/* Suggested Cities (shown when location is approximate or not set) */}
+                {locationStatus === 'approximate' && (
+                    <div className="animate-fade-in" style={{
+                        marginTop: '4px',
+                        padding: '12px',
+                        borderRadius: '14px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                    }}>
+                        <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase' }}>Quick Select</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            {['Tiruppur', 'Coimbatore', 'Chennai', 'Madurai'].map(city => (
+                                <button
+                                    key={city}
+                                    onClick={() => onSearch(city)}
+                                    style={{
+                                        padding: '8px 4px',
+                                        borderRadius: '8px',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        color: 'white',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                                >
+                                    {city}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {timedAlert && (
                     <div className="animate-fade-in" style={{
@@ -351,16 +518,16 @@ const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiDa
                             marginBottom: '6px'
                         }}>
                             <p style={{
-                            margin: 0,
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.4px',
-                            textTransform: 'uppercase',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                        }}>
-                            <AlertTriangle size={14} /> Weather Alert
+                                margin: 0,
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.4px',
+                                textTransform: 'uppercase',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                            }}>
+                                <AlertTriangle size={14} /> Weather Alert
                             </p>
                             <button
                                 onClick={() => setTimedAlert(null)}
@@ -446,9 +613,43 @@ const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiDa
                                             padding: '5px 0', // Vertical breathing room
                                             lineHeight: 1.3,
                                             letterSpacing: '-0.5px',
-                                            wordBreak: 'break-word'
+                                            wordBreak: 'break-word',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            flexWrap: 'wrap',
+                                            gap: '8px'
                                         }}>
                                             {weatherData.name}
+                                            {locationStatus === 'approximate' && (
+                                                <span style={{
+                                                    fontSize: '0.6rem',
+                                                    background: 'rgba(255,255,255,0.15)',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    fontWeight: 700,
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.5px',
+                                                    color: 'rgba(255,255,255,0.8)',
+                                                    border: '1px solid rgba(255,255,255,0.1)'
+                                                }}>
+                                                    Estimated
+                                                </span>
+                                            )}
+                                            {locationStatus === 'granted' && (
+                                                <span style={{
+                                                    fontSize: '0.6rem',
+                                                    background: 'rgba(16, 185, 129, 0.2)',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    fontWeight: 700,
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.5px',
+                                                    color: '#6ee7b7',
+                                                    border: '1px solid rgba(16, 185, 129, 0.3)'
+                                                }}>
+                                                    Verified
+                                                </span>
+                                            )}
                                         </h2>
                                         <p style={{
                                             color: 'rgba(255,255,255,0.85)',
@@ -459,6 +660,19 @@ const Sidebar = ({ activeLayer, setActiveLayer, weatherData, forecastData, aqiDa
                                         }}>
                                             {weatherData.weather[0].description}
                                         </p>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            color: 'rgba(255,255,255,0.6)',
+                                            fontSize: '0.7rem',
+                                            marginTop: '6px',
+                                            fontFamily: 'monospace'
+                                        }}>
+                                            <span>Lat: {weatherData.coord?.lat.toFixed(4)}</span>
+                                            <span>•</span>
+                                            <span>Lon: {weatherData.coord?.lon.toFixed(4)}</span>
+                                        </div>
                                     </div>
                                     <div style={{ flexShrink: 0, paddingBottom: '5px' }}>
                                         {getWeatherIcon(weatherData.weather[0].main)}

@@ -125,55 +125,89 @@ const TamilNaduTicker = ({ apiBaseUrl }) => {
     }, [reports, activeIndex]);
 
     return (
-        <div className="tn-ticker">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <CloudSun size={16} color='#93c5fd' />
-                    <p style={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.3px' }}>Tamil Nadu District Weather</p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-                    <RefreshCw size={12} /> Auto
+        <div className="premium-intel-card card-accent-indigo animate-fade-in">
+            <div className="header-row">
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className="icon-chip" style={{ background: 'rgba(99, 102, 241, 0.12)', color: '#818cf8', borderColor: 'rgba(99, 102, 241, 0.2)' }}>
+                        <CloudSun size={20} />
+                    </div>
+                    <div className="label-container">
+                        <div className="card-label">Regional Pulse</div>
+                        <div className="card-status">
+                            <RefreshCw size={10} className="spin-slow" /> ACTIVE MONITORING
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {loading ? (
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Loading district weather...</p>
+                <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                    <div className="spin-slow" style={{ color: '#818cf8', marginBottom: '12px' }}>
+                        <RefreshCw size={28} />
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Synchronizing climate matrix...</p>
+                </div>
             ) : error ? (
-                <p style={{ fontSize: '0.82rem', color: '#fca5a5' }}>{error}</p>
+                <div style={{ padding: '20px', textAlign: 'center', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '16px' }}>
+                    {error}
+                </div>
             ) : activeReport ? (
                 <>
-                    <div style={{
-                        padding: '12px',
-                        borderRadius: '12px',
-                        background: 'rgba(255,255,255,0.07)',
-                        border: '1px solid rgba(255,255,255,0.12)'
-                    }}>
-                        <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>{activeReport.district}</p>
-                        <p style={{ margin: '4px 0 0', fontSize: '1.45rem', fontWeight: 800 }}>{activeReport.temperature}°C</p>
-                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{activeReport.condition}</p>
-                        <p style={{ margin: '6px 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                            Humidity {activeReport.humidity ?? '-'}% | Wind {activeReport.wind ?? '-'} m/s
-                        </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <h2 style={{ fontSize: '2.4rem', fontWeight: 800, margin: 0, letterSpacing: '-1.5px', color: '#fff', lineHeight: 1 }}>
+                                {activeReport.district}
+                            </h2>
+                            <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                Tamil Nadu <span style={{ opacity: 0.2 }}>|</span> India
+                            </p>
+                        </div>
+                        <div className="float-slow" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                             <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <CloudSun size={32} color="#818cf8" />
+                             </div>
+                             <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>{activeReport.condition}</span>
+                        </div>
                     </div>
 
-                    <div style={{ marginTop: '8px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        {reports.slice(0, 10).map((item, index) => (
-                            <span
-                                key={item.district}
-                                title={item.district}
-                                style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    borderRadius: '999px',
-                                    background: index === activeIndex ? '#60a5fa' : 'rgba(255,255,255,0.2)'
-                                }}
-                            />
-                        ))}
+                    <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '24px', gap: '8px' }}>
+                        <span className="text-glow-primary" style={{ fontSize: '4.8rem', fontWeight: 800, lineHeight: 0.8, color: '#fff' }}>
+                            {activeReport.temperature}
+                        </span>
+                        <span style={{ fontSize: '2rem', fontWeight: 700, color: '#818cf8' }}>°C</span>
                     </div>
 
-                    <p style={{ marginTop: '8px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                        Updated {lastUpdated}. Rotating every 3.5s.
-                    </p>
+                    <div className="metric-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                        <div className="metric-tile">
+                            <div className="metric-label">Humidity</div>
+                            <div className="metric-value">{activeReport.humidity}%</div>
+                        </div>
+                        <div className="metric-tile">
+                            <div className="metric-label">Wind Velocity</div>
+                            <div className="metric-value">{activeReport.wind} <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>m/s</span></div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            {reports.slice(0, 10).map((_, i) => (
+                                <div 
+                                    key={i} 
+                                    style={{ 
+                                        width: i === activeIndex ? '24px' : '6px', 
+                                        height: '6px', 
+                                        background: i === activeIndex ? '#6366f1' : 'rgba(255,255,255,0.1)',
+                                        borderRadius: '3px',
+                                        transition: 'all 0.6s cubic-bezier(0.19, 1, 0.22, 1)',
+                                        boxShadow: i === activeIndex ? '0 0 12px rgba(99, 102, 241, 0.5)' : 'none'
+                                    }} 
+                                />
+                            ))}
+                        </div>
+                        <div className="badge-premium" style={{ borderColor: 'rgba(99, 102, 241, 0.3)', color: '#818cf8' }}>
+                            {lastUpdated}
+                        </div>
+                    </div>
                 </>
             ) : null}
         </div>
