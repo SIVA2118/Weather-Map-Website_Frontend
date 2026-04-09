@@ -9,7 +9,7 @@ import { Navigation } from 'lucide-react';
 
 import { saveSearchHistory } from './utils/historyUtils';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://weather-map-website-backend.onrender.com';
 
 function App() {
     const [activeLayer, setActiveLayer] = useState('standard');
